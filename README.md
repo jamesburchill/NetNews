@@ -22,7 +22,7 @@ Link: https://www.cbc.ca/news/canada/north/yellowknife-dump-good-boots-1.4638760
 Summary: Crates of steel-toe boots mysteriously appeared at the Yellowknife dump, but have since been mostly removed. The origins and reasons for the boots being there remain unclear.
 ```
 
-### NetNews is quck and can process multiple feeds at once!
+### NetNews is quick and can process multiple feeds at once!
 
 The multithreaded aspect of this code is implemented using Python's built-in `threading` module. Here's how it works:
 
