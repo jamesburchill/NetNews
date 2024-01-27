@@ -2,3 +2,6 @@ feedparser~=6.0.11
 openai~=1.10.0
 
 setuptools~=68.2.0
+pip~=23.3.2
+distro~=1.9.0
+python-dotenv~=1.0.1
