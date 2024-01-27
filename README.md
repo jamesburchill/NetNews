@@ -5,7 +5,7 @@ NetNews is a simple solution to all the noisy news - let ChatGPT's AI summarize 
 
 Enter the RSS feeds you wish to summarize into the rssfeeds.ini file and tell ChatGPT how many summaries you want.
 
-**IMPORTANT:** Remember to rename the dot.env file to .env and add your OPENAI API KEY and set the AI_MODEL to you preferred engine. 
+**IMPORTANT:** Remember to rename the dot.env file to .env and add your OPENAI API KEY and set the AI_MODEL to your preferred engine. 
 
 Produces a simple text file called: `TodaysNetNews.txt`
 
