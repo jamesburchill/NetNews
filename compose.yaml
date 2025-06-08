@@ -40,11 +40,9 @@ networks:
 # before running this docker-compose file.
 # 
 # The volume mappings work as follows:
-# 1. "/volume1/docker/netnews:/app" mounts the host directory to the /app directory in the container
-# 2. "/volume1/docker/netnews/RSSFeeds.ini:/app/RSSFeeds.ini" ensures the RSSFeeds.ini file is accessible
-#    directly in the /app directory of the netnewscore container
-# 3. "/volume1/docker/netnews/netnews.db:/app/netnews.db" ensures the netnews.db file is accessible
-#    directly in the /app directory of both containers
+# 1. "/volume1/docker/netnews:/netnews" mounts the host directory to the /netnews directory in the container
+# 2. This ensures the RSSFeeds.ini file is accessible directly in the /netnews directory of the netnewscore container
+# 3. This also ensures the netnews.db file is accessible directly in the /netnews directory of both containers
 #
 # The applications have been updated to look for these files in both the current directory
 # and the parent directory, so they will work with this configuration.

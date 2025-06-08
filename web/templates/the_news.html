@@ -10,6 +10,15 @@
     </style>
 </head>
 <body>
+<!-- 
+Summary tuple structure:
+summary[0] = id (INTEGER PRIMARY KEY)
+summary[1] = feed (TEXT) - The name of the RSS feed
+summary[2] = title (TEXT) - The title of the article
+summary[3] = link (TEXT) - The URL to the original article
+summary[4] = summary (TEXT) - The AI-generated summary of the article
+summary[5] = created_date (DATE) - The date the summary was created
+-->
 {% set ns = namespace(current_first_field=none, todays_date=none) %}
 {% for summary in summaries %}
     {% if summary[5] != ns.todays_date %}

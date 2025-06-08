@@ -25,7 +25,7 @@ def hello_world():
     cur = conn.cursor()
 
     # Write a SQL query to fetch all records from today
-    # Replace 'table_name' and 'date_column' with your actual table name and date column name
+    # Query the 'news' table for entries with today's date in the 'created_date' column
     query = f"SELECT * FROM news WHERE date(created_date) = date('{date.today()}')"
 
     # Execute the SQL query

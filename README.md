@@ -11,6 +11,29 @@ This repository contains a Docker Compose configuration for running the NetNews 
 - An OpenAI API key
 - Synology DS423+ NAS (or compatible model)
 
+## Project Structure
+
+The project is organized as follows:
+
+- `core/`: Contains the NetNewsCore component
+  - `main.py`: Main script for fetching and summarizing RSS feeds
+  - `Dockerfile`: Container configuration for NetNewsCore
+  - `requirements.txt`: Python dependencies for NetNewsCore
+
+- `web/`: Contains the NetNewsWeb component
+  - `app.py`: Flask web application for displaying news summaries
+  - `Dockerfile`: Container configuration for NetNewsWeb
+  - `requirements.txt`: Python dependencies for NetNewsWeb
+  - `templates/`: HTML templates for the web interface
+    - `the_news.html`: Template for displaying news summaries
+  - `images/`: Static images used in the web interface
+
+- `compose.yaml`: Docker Compose configuration for running both components
+- `RSSFeeds.ini`: Configuration file for RSS feeds
+- `.env`: Environment variables configuration (API keys, settings)
+- `example.env` : Example environment variables file
+- `README.md`: This documentation file
+
 ## Setup Instructions
 
 1. Clone this repository to your Synology NAS or copy the files to a directory on your NAS.
@@ -29,7 +52,7 @@ This repository contains a Docker Compose configuration for running the NetNews 
 
    Option 1: Edit the .env file in the NetNewsCore directory:
    ```bash
-   nano core/.env
+   nano .env
    ```
    Replace `your_openai_api_key` with your actual OpenAI API key.
 
@@ -50,24 +73,14 @@ This repository contains a Docker Compose configuration for running the NetNews 
 To run NetNewsCore at 5am daily to gather new data:
 
 1. Open the Task Scheduler in your Synology DSM.
-2. Create a new scheduled task.
-3. Select "User-defined script" as the task type.
-4. Set the schedule to run at 5am daily.
-5. In the "Run command" field, enter:
+2. Create a new scheduled task. 
+3. Run as `root` or a user with sufficient permissions to run Docker commands.
+4. Select "User-defined script" as the task type. 
+5. Set the schedule to run at 5am daily. 
+6. In the "Run command" field, enter:
    ```bash
-   cd /path/to/netnews && OPENAI_API_KEY=your_openai_api_key docker-compose run netnewscore
-   ```
-   Replace `/path/to/netnews` with the actual path to the directory containing the compose.yaml file, and `your_openai_api_key` with your actual OpenAI API key.
-
-   For better security, consider creating a script file with restricted permissions:
-   ```bash
-   echo '#!/bin/bash' > /volume1/docker/netnews/run_netnewscore.sh
-   echo 'cd /path/to/netnews && OPENAI_API_KEY=your_openai_api_key docker-compose run netnewscore' >> /volume1/docker/netnews/run_netnewscore.sh
-   chmod 700 /volume1/docker/netnews/run_netnewscore.sh
-   ```
-   Then in the Task Scheduler, use:
-   ```bash
-   /volume1/docker/netnews/run_netnewscore.sh
+   cd /volume1/docker/netnews
+   /usr/local/bin/docker-compose run --rm netnewscore
    ```
 
 ## Customizing RSS Feeds
@@ -178,6 +191,26 @@ The NetNewsCore component has been enhanced with several new features and improv
 - **Code Organization**: Better structured code for easier maintenance
 - **Documentation**: Comprehensive documentation of features and configuration options
 
+## Security Best Practices
+
+When working with this application, please follow these security best practices:
+
+1. **API Key Management**:
+   - Never commit your actual OpenAI API key to version control
+   - Use environment variables or the `.env` file to store your API key
+   - Consider using Docker secrets or a secure vault for production deployments
+   - Regularly rotate your API keys as a security measure
+
+2. **Access Control**:
+   - Restrict access to the web interface using network controls or a reverse proxy with authentication
+   - Limit access to the Docker host to authorized users only
+   - Use strong passwords for all accounts with access to the system
+
+3. **Data Protection**:
+   - The application stores summarized content in a SQLite database
+   - Ensure the database file has appropriate file permissions
+   - Consider encrypting sensitive data if required by your organization's policies
+
 ## Troubleshooting
 
 If you encounter issues:
@@ -193,3 +226,21 @@ If you encounter issues:
    ```
 6. Review the log file specified in the LOG_FILE environment variable for detailed error information.
 7. If you're having network connectivity issues, try restarting the Docker service on your Synology NAS.
+
+## Contributing
+
+Contributions to NetNews are welcome! Here's how you can contribute:
+
+1. **Report Issues**: If you find a bug or have a suggestion for improvement, please open an issue on the repository.
+
+2. **Submit Pull Requests**: If you'd like to contribute code:
+   - Fork the repository
+   - Create a new branch for your feature or bugfix
+   - Make your changes
+   - Submit a pull request with a clear description of the changes
+
+3. **Documentation**: Improvements to documentation are always appreciated.
+
+4. **Testing**: Help test the application in different environments and report any issues.
+
+Please ensure your code follows the existing style and includes appropriate documentation and tests.
