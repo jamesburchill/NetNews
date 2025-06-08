@@ -253,6 +253,12 @@ def main():
     log_level = args.log_level if args.log_level else os.getenv('LOG_LEVEL', 'INFO')
     log_file = args.log_file if args.log_file else os.getenv('LOG_FILE', 'netnews.log')
 
+    if os.path.exists('/netnews'):  # Running in deployment environment
+        log_file = '/netnews/'+log_file
+    else: # Running in local environment
+        log_file = '../'+log_file
+
+
     # Configure logging
     log_format = '%(asctime)s - %(name)s - %(levelname)s - %(message)s'
     logging.basicConfig(
