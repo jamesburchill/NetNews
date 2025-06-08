@@ -112,7 +112,6 @@ The following environment variables can be set in the `.env` file or passed dire
 - `AI_MODEL`: The OpenAI model to use (default: gpt-3.5-turbo)
 
 #### Performance Settings:
-- `MAX_WORKERS`: Number of parallel workers for processing feeds (default: 3)
 - `FEED_TIMEOUT`: Timeout in seconds for RSS feed requests (default: 30)
 - `MAX_RETRIES`: Maximum number of retry attempts for API calls (default: 3)
 
@@ -139,7 +138,7 @@ Available options:
 - `--env PATH`: Path to .env file
 
 #### Processing Options:
-- `--workers N`: Number of parallel workers
+- `--workers N`: Number of parallel workers (ignored, sequential processing is used)
 - `--timeout N`: Timeout for RSS feed requests in seconds
 - `--retention N`: Number of days to keep entries
 - `--model MODEL`: OpenAI model to use
@@ -171,7 +170,7 @@ The bridge network is configured automatically when you start the containers wit
 The NetNewsCore component has been enhanced with several new features and improvements:
 
 ### Performance Improvements
-- **Parallel Processing**: Process multiple RSS feeds simultaneously for faster execution
+- **Sequential Processing**: Process RSS feeds one at a time for improved reliability with SQLite
 - **Database Indexing**: Improved database performance with indexes on frequently queried fields
 - **Configurable Timeouts**: Adjust timeouts to handle slow RSS feeds
 

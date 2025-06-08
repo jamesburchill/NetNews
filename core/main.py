@@ -6,7 +6,6 @@ import time
 import logging
 import argparse
 from datetime import datetime, timedelta
-import concurrent.futures
 
 import feedparser
 from dotenv import load_dotenv
@@ -84,6 +83,7 @@ def generate_summaries(client, model, conn, feed_name, feed_url, num_stories):
     timeout = int(os.getenv('FEED_TIMEOUT', '30'))
 
     try:
+
         # Set a timeout for the socket operations
         original_timeout = socket.getdefaulttimeout()
         socket.setdefaulttimeout(timeout)
@@ -158,8 +158,10 @@ def generate_summaries(client, model, conn, feed_name, feed_url, num_stories):
 
     except (TimeoutError, socket.timeout) as e:
         logger.error(f"Timeout error when fetching feed {feed_name} from {feed_url}: {e}")
+        # Continue with the next feed
     except Exception as e:
         logger.error(f"Error when processing feed {feed_name} from {feed_url}: {e}", exc_info=True)
+        # Continue with the next feed
 
 
 def setup_logging():
@@ -213,7 +215,7 @@ def parse_arguments():
     parser.add_argument('--env', type=str, help='Path to .env file')
 
     # Processing options
-    parser.add_argument('--workers', type=int, help='Number of parallel workers')
+    parser.add_argument('--workers', type=int, help='Number of parallel workers (ignored, sequential processing is used)')
     parser.add_argument('--timeout', type=int, help='Timeout for RSS feed requests in seconds')
     parser.add_argument('--retention', type=int, help='Number of days to keep entries')
     parser.add_argument('--model', type=str, help='OpenAI model to use')
@@ -322,16 +324,15 @@ def main():
     if deleted_count > 0:
         logger.info(f"Cleaned up {deleted_count} entries older than {days_to_keep} days")
 
-    # Process feeds in parallel
+    # Process feeds
     model = args.model if args.model else os.getenv('AI_MODEL')
     if not model:
         logger.warning("AI_MODEL not specified, defaulting to gpt-3.5-turbo")
         model = "gpt-3.5-turbo"
     logger.info(f"Using AI model: {model}")
 
-    # Get max workers
-    max_workers = args.workers if args.workers else int(os.getenv('MAX_WORKERS', '3'))
-    logger.info(f"Processing feeds with {max_workers} workers")
+    # No longer using workers as we're processing feeds sequentially
+    logger.info("Processing feeds sequentially")
 
     # Get timeout
     timeout = args.timeout if args.timeout else int(os.getenv('FEED_TIMEOUT', '30'))
@@ -364,20 +365,15 @@ def main():
 
     logger.info(f"Processing {len(feed_tasks)} feeds: {[task[0] for task in feed_tasks]}")
 
-    # Process feeds in parallel
-    with concurrent.futures.ThreadPoolExecutor(max_workers=max_workers) as executor:
-        futures = [
-            executor.submit(generate_summaries, client, model, conn, key, url, num_entries)
-            for key, url, num_entries in feed_tasks
-        ]
+    # Process feeds sequentially
+    for key, url, num_entries in feed_tasks:
+        try:
+            generate_summaries(client, model, conn, key, url, num_entries)
+        except Exception as e:
+            logger.error(f"Error processing feed {key}: {e}", exc_info=True)
+            # Continue with the next feed
 
-        # Wait for all tasks to complete
-        for future in concurrent.futures.as_completed(futures):
-            try:
-                future.result()
-            except Exception as e:
-                logger.error(f"Error in feed processing task: {e}", exc_info=True)
-
+    # Close the database connection
     conn.close()
     logger.info('NetNews feed processing completed successfully')
 
