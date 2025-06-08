@@ -1,0 +1,53 @@
+# Docker Compose file for NetNews
+# To run: OPENAI_API_KEY=your_api_key docker-compose up -d
+
+services:
+  netnewscore:
+    build:
+      context: core
+    environment:
+      - OPENAI_API_KEY=${OPENAI_API_KEY}
+      - AI_MODEL=gpt-3.5-turbo
+    volumes:
+      - /volume1/docker/netnews:/netnews
+    restart: "no"
+    # This container will run once and stop
+    # To run it manually: docker-compose run netnewscore
+    command: python main.py
+    networks:
+      - netnews-network
+
+  netnewsweb:
+    build:
+      context: web
+    ports:
+      - "8081:8080"
+    volumes:
+      - /volume1/docker/netnews:/netnews
+    restart: always
+    # The web service will run continuously
+    depends_on:
+      - netnewscore
+    networks:
+      - netnews-network
+
+networks:
+  netnews-network:
+    driver: bridge
+
+# Note: Make sure the directory /volume1/docker/netnews exists on your Synology NAS
+# Place your RSSFeeds.ini and netnews.db files in the /volume1/docker/netnews directory
+# before running this docker-compose file.
+# 
+# The volume mappings work as follows:
+# 1. "/volume1/docker/netnews:/app" mounts the host directory to the /app directory in the container
+# 2. "/volume1/docker/netnews/RSSFeeds.ini:/app/RSSFeeds.ini" ensures the RSSFeeds.ini file is accessible
+#    directly in the /app directory of the netnewscore container
+# 3. "/volume1/docker/netnews/netnews.db:/app/netnews.db" ensures the netnews.db file is accessible
+#    directly in the /app directory of both containers
+#
+# The applications have been updated to look for these files in both the current directory
+# and the parent directory, so they will work with this configuration.
+# 
+# To schedule core to run at 5am daily, create a cron job on your Synology NAS:
+# 0 5 * * * cd /path/to/netnews && OPENAI_API_KEY=your_api_key docker-compose run netnewscore

@@ -1,0 +1,29 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>NET NEWS v1.0</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+        }
+    </style>
+</head>
+<body>
+{% set ns = namespace(current_first_field=none, todays_date=none) %}
+{% for summary in summaries %}
+    {% if summary[5] != ns.todays_date %}
+        <h1>NET NEWS for {{ summary[5] }}</h1>
+        {% set ns.todays_date = summary[5] %}
+    {% endif %}
+    {% if summary[1] != ns.current_first_field %}
+        <p><h2>{{ summary[1] }}</h2>
+        {% set ns.current_first_field = summary[1] %}
+    {% endif %}
+    <li><a href="{{ summary[3] }}" target="_blank"><strong>{{ summary[2] }}</strong></a> -- {{ summary[4] }}</li>
+{% endfor %}
+<p>
+<hr>
+<p>NET NEWS v1.0 - Copyright (c) 2025 - <a href="https://jamesburchill.com">James Burchill</a> - All Rights Reserved</p>
+</body>
+</html>
