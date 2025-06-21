@@ -60,7 +60,7 @@ def get_summary_from_AI(client, model, text, logger, max_retries=3, retry_delay=
                 return None
 
 
-def generate_summaries(client, model, conn, feed_name, feed_url, num_stories):
+def generate_summaries(client, model, conn, feed_name, feed_url, num_stories, max_retries=3):
     """
     This function generates summaries for a given number of stories from a RSS feed and stores them in a SQLite
     database.
@@ -72,6 +72,7 @@ def generate_summaries(client, model, conn, feed_name, feed_url, num_stories):
     feed_name (str): The name of the RSS feed.
     feed_url (str): The URL of the RSS feed.
     num_stories (int): The number of stories to summarize.
+    max_retries (int): Maximum number of API call retries.
 
     Returns:
     None
@@ -137,7 +138,6 @@ def generate_summaries(client, model, conn, feed_name, feed_url, num_stories):
 
             # Generate summary
             logger.debug(f"Generating summary for: {entry.title}")
-            max_retries = int(os.getenv('MAX_RETRIES', '3'))
             summary = get_summary_from_AI(client, model, description, logger, max_retries=max_retries)
 
             if summary is not None:
@@ -351,7 +351,7 @@ def main():
 
     # Prepare feed processing tasks
     feed_tasks = []
-    selected_feeds = args.feeds if args.feeds else None
+    selected_feeds = [f.lower() for f in args.feeds] if args.feeds else None
 
     for key in config['RSS_FEEDS']:
         # Skip feeds not in the selected list if a selection was provided
@@ -374,7 +374,7 @@ def main():
     # Process feeds sequentially
     for key, url, num_entries in feed_tasks:
         try:
-            generate_summaries(client, model, conn, key, url, num_entries)
+            generate_summaries(client, model, conn, key, url, num_entries, max_retries=max_retries)
         except Exception as e:
             logger.error(f"Error processing feed {key}: {e}", exc_info=True)
             # Continue with the next feed
