@@ -26,10 +26,11 @@ def hello_world():
 
     # Write a SQL query to fetch all records from today
     # Query the 'news' table for entries with today's date in the 'created_date' column
-    query = f"SELECT * FROM news WHERE date(created_date) = date('{date.today()}')"
+    # Parameterized query to avoid SQL injection issues
+    query = "SELECT * FROM news WHERE date(created_date) = date(?)"
 
     # Execute the SQL query
-    cur.execute(query)
+    cur.execute(query, (date.today(),))
 
     # Fetch all rows
     summaries = cur.fetchall()
