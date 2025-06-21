@@ -31,7 +31,9 @@ def get_summary_from_AI(client, model, text, logger, max_retries=3, retry_delay=
     # Ensure text is not too long
     max_length = 4000  # Reasonable limit for API
     if len(text) > max_length:
-        logger.warning(f"Text too long ({len(text)} chars), truncating to {max_length} chars")
+        logger.warning(
+            f"Text too long ({len(text)} chars), truncating to {max_length} chars"
+        )
         text = text[:max_length]
 
     for attempt in range(max_retries):
@@ -39,14 +41,20 @@ def get_summary_from_AI(client, model, text, logger, max_retries=3, retry_delay=
             response = client.chat.completions.create(
                 model=model,
                 messages=[
-                    {"role": "system",
-                     "content": "You are a highly skilled AI trained in language comprehension and summarization. I would "
-                                "like you to read the following text and summarize it into a concise abstract paragraph. Aim "
-                                "to retain the most important points, providing a coherent and readable summary that could "
-                                "help a person understand the main points of the discussion without needing to read the "
-                                "entire text. Please avoid unnecessary details or tangential points."},
-                    {"role": "user", "content": text}
-                ])
+                    {
+                        "role": "system",
+                        "content": (
+                            "You are a highly skilled AI trained in language comprehension and "
+                            "summarization. Please read the following text and summarize it into a "
+                            "concise abstract paragraph. Aim to retain the most important points, "
+                            "providing a coherent summary that helps readers understand the main "
+                            "discussion without reading the entire text. Avoid unnecessary details "
+                            "or tangential points."
+                        ),
+                    },
+                    {"role": "user", "content": text},
+                ],
+            )
             return response.choices[0].message.content
         except Exception as e:
             logger.warning(f"API call failed (attempt {attempt+1}/{max_retries}): {e}")
@@ -61,26 +69,13 @@ def get_summary_from_AI(client, model, text, logger, max_retries=3, retry_delay=
 
 
 def generate_summaries(client, model, conn, feed_name, feed_url, num_stories):
-    """
-    This function generates summaries for a given number of stories from a RSS feed and stores them in a SQLite
-    database.
+    """Generate summaries for a feed and store them in SQLite."""
 
-    Parameters:
-    client (openai.OpenAI): The OpenAI client with the API key.
-    model (str): The model to use for the summary generation.
-    conn (sqlite3.Connection): The SQLite database connection.
-    feed_name (str): The name of the RSS feed.
-    feed_url (str): The URL of the RSS feed.
-    num_stories (int): The number of stories to summarize.
-
-    Returns:
-    None
-    """
-    logger = logging.getLogger('NetNews')
+    logger = logging.getLogger("NetNews")
     logger.info(f"Starting to process feed: {feed_name}")
 
     # Get timeout from environment or use default
-    timeout = int(os.getenv('FEED_TIMEOUT', '30'))
+    timeout = int(os.getenv("FEED_TIMEOUT", "30"))
 
     try:
 
@@ -94,14 +89,16 @@ def generate_summaries(client, model, conn, feed_name, feed_url, num_stories):
         # Restore the original timeout
         socket.setdefaulttimeout(original_timeout)
 
-        if hasattr(feed, 'status') and feed.status != 200:
+        if hasattr(feed, "status") and feed.status != 200:
             logger.warning(f"Feed returned non-200 status: {feed.status}")
 
         if not feed.entries:
             logger.warning(f"No entries found in feed: {feed_name}")
             return
 
-        logger.info(f"Found {len(feed.entries)} entries in feed, processing up to {num_stories}")
+        logger.info(
+            f"Found {len(feed.entries)} entries in feed, processing up to {num_stories}"
+        )
 
         # Track statistics
         processed = 0
@@ -116,8 +113,10 @@ def generate_summaries(client, model, conn, feed_name, feed_url, num_stories):
             processed += 1
 
             # Skip entries without titles or descriptions
-            if not hasattr(entry, 'title') or not hasattr(entry, 'description'):
-                logger.warning(f"Entry {i} in {feed_name} missing title or description, skipping")
+            if not hasattr(entry, "title") or not hasattr(entry, "description"):
+                logger.warning(
+                    f"Entry {i} in {feed_name} missing title or description, skipping"
+                )
                 skipped += 1
                 continue
 
@@ -133,17 +132,21 @@ def generate_summaries(client, model, conn, feed_name, feed_url, num_stories):
             description = entry.description
 
             # Get link
-            link = entry.link if hasattr(entry, 'link') else ""
+            link = entry.link if hasattr(entry, "link") else ""
 
             # Generate summary
             logger.debug(f"Generating summary for: {entry.title}")
-            max_retries = int(os.getenv('MAX_RETRIES', '3'))
-            summary = get_summary_from_AI(client, model, description, logger, max_retries=max_retries)
+            max_retries = int(os.getenv("MAX_RETRIES", "3"))
+            summary = get_summary_from_AI(
+                client, model, description, logger, max_retries=max_retries
+            )
 
             if summary is not None:
                 try:
-                    c.execute('''INSERT INTO news (feed, title, link, summary) VALUES (?, ?, ?, ?)''',
-                              (feed_name, entry.title, link, summary))
+                    c.execute(
+                        """INSERT INTO news (feed, title, link, summary) VALUES (?, ?, ?, ?)""",
+                        (feed_name, entry.title, link, summary),
+                    )
                     conn.commit()
                     added += 1
                     logger.debug(f"Added summary for: {entry.title}")
@@ -154,33 +157,39 @@ def generate_summaries(client, model, conn, feed_name, feed_url, num_stories):
                 logger.warning(f"Failed to generate summary for: {entry.title}")
                 failed += 1
 
-        logger.info(f"Feed {feed_name} stats: processed={processed}, added={added}, skipped={skipped}, failed={failed}")
+        logger.info(
+            "Feed %s stats: processed=%s, added=%s, skipped=%s, failed=%s",
+            feed_name,
+            processed,
+            added,
+            skipped,
+            failed,
+        )
 
     except (TimeoutError, socket.timeout) as e:
-        logger.error(f"Timeout error when fetching feed {feed_name} from {feed_url}: {e}")
+        logger.error(
+            f"Timeout error when fetching feed {feed_name} from {feed_url}: {e}"
+        )
         # Continue with the next feed
     except Exception as e:
-        logger.error(f"Error when processing feed {feed_name} from {feed_url}: {e}", exc_info=True)
+        logger.error(
+            f"Error when processing feed {feed_name} from {feed_url}: {e}",
+            exc_info=True,
+        )
         # Continue with the next feed
 
 
-def setup_logging():
-    """
-    Configure logging for the application.
+def setup_logging(level=logging.INFO, log_file="netnews.log"):
+    """Configure and return a logger instance."""
 
-    Returns:
-    logging.Logger: Configured logger instance
-    """
-    log_format = '%(asctime)s - %(name)s - %(levelname)s - %(message)s'
+    log_format = "%(asctime)s - %(name)s - %(levelname)s - %(message)s"
     logging.basicConfig(
-        level=logging.INFO,
+        level=level,
         format=log_format,
-        handlers=[
-            logging.StreamHandler(),
-            logging.FileHandler('netnews.log')
-        ]
+        handlers=[logging.StreamHandler(), logging.FileHandler(log_file)],
     )
-    return logging.getLogger('NetNews')
+    return logging.getLogger("NetNews")
+
 
 def cleanup_old_entries(conn, days_to_keep=30):
     """
@@ -193,12 +202,15 @@ def cleanup_old_entries(conn, days_to_keep=30):
     Returns:
     int: Number of entries removed
     """
-    cutoff_date = (datetime.now() - timedelta(days=days_to_keep)).strftime('%Y-%m-%d')
+    cutoff_date = (datetime.now() - timedelta(days=days_to_keep)).strftime("%Y-%m-%d")
     cursor = conn.cursor()
-    cursor.execute("DELETE FROM news WHERE date(created_date) < date(?)", (cutoff_date,))
+    cursor.execute(
+        "DELETE FROM news WHERE date(created_date) < date(?)", (cutoff_date,)
+    )
     deleted_count = cursor.rowcount
     conn.commit()
     return deleted_count
+
 
 def parse_arguments():
     """
@@ -207,34 +219,53 @@ def parse_arguments():
     Returns:
     argparse.Namespace: Parsed command-line arguments
     """
-    parser = argparse.ArgumentParser(description='NetNews - RSS feed summarizer using AI')
+    parser = argparse.ArgumentParser(
+        description="NetNews - RSS feed summarizer using AI"
+    )
 
     # Configuration options
-    parser.add_argument('--config', type=str, help='Path to RSS feeds configuration file')
-    parser.add_argument('--db', type=str, help='Path to SQLite database file')
-    parser.add_argument('--env', type=str, help='Path to .env file')
+    parser.add_argument(
+        "--config", type=str, help="Path to RSS feeds configuration file"
+    )
+    parser.add_argument("--db", type=str, help="Path to SQLite database file")
+    parser.add_argument("--env", type=str, help="Path to .env file")
 
     # Processing options
-    parser.add_argument('--workers', type=int, help='Number of parallel workers (ignored, sequential processing is used)')
-    parser.add_argument('--timeout', type=int, help='Timeout for RSS feed requests in seconds')
-    parser.add_argument('--retention', type=int, help='Number of days to keep entries')
-    parser.add_argument('--model', type=str, help='OpenAI model to use')
-    parser.add_argument('--max-retries', type=int, help='Maximum number of API call retries')
+    parser.add_argument(
+        "--workers",
+        type=int,
+        help="Number of parallel workers (ignored, sequential processing is used)",
+    )
+    parser.add_argument(
+        "--timeout", type=int, help="Timeout for RSS feed requests in seconds"
+    )
+    parser.add_argument("--retention", type=int, help="Number of days to keep entries")
+    parser.add_argument("--model", type=str, help="OpenAI model to use")
+    parser.add_argument(
+        "--max-retries", type=int, help="Maximum number of API call retries"
+    )
 
     # Logging options
-    parser.add_argument('--log-level', type=str, choices=['DEBUG', 'INFO', 'WARNING', 'ERROR', 'CRITICAL'],
-                        help='Logging level')
-    parser.add_argument('--log-file', type=str, help='Path to log file')
+    parser.add_argument(
+        "--log-level",
+        type=str,
+        choices=["DEBUG", "INFO", "WARNING", "ERROR", "CRITICAL"],
+        help="Logging level",
+    )
+    parser.add_argument("--log-file", type=str, help="Path to log file")
 
     # Feed selection
-    parser.add_argument('--feeds', type=str, nargs='+', help='Specific feeds to process (by name)')
+    parser.add_argument(
+        "--feeds", type=str, nargs="+", help="Specific feeds to process (by name)"
+    )
 
     return parser.parse_args()
 
+
 def main():
     """
-    This is the main function that reads the RSS feeds from the configuration file, generates summaries for each feed
-    and stores them in a SQLite database.
+    This function reads the RSS feed configuration, generates summaries, and
+    stores them in a SQLite database.
 
     Parameters:
     None
@@ -250,26 +281,16 @@ def main():
     load_dotenv(dotenv_path=env_path)
 
     # Setup logging
-    log_level = args.log_level if args.log_level else os.getenv('LOG_LEVEL', 'INFO')
-    log_file = args.log_file if args.log_file else os.getenv('LOG_FILE', 'netnews.log')
+    log_level = args.log_level if args.log_level else os.getenv("LOG_LEVEL", "INFO")
+    log_file = args.log_file if args.log_file else os.getenv("LOG_FILE", "netnews.log")
 
-    if os.path.exists('/netnews'):  # Running in deployment environment
-        log_file = '/netnews/'+log_file
-    else: # Running in local environment
-        log_file = '../'+log_file
+    if os.path.exists("/netnews"):  # Running in deployment environment
+        log_file = "/netnews/" + log_file
+    else:  # Running in local environment
+        log_file = "../" + log_file
 
-
-    # Configure logging
-    log_format = '%(asctime)s - %(name)s - %(levelname)s - %(message)s'
-    logging.basicConfig(
-        level=getattr(logging, log_level),
-        format=log_format,
-        handlers=[
-            logging.StreamHandler(),
-            logging.FileHandler(log_file)
-        ]
-    )
-    logger = logging.getLogger('NetNews')
+    # Configure logging using helper
+    logger = setup_logging(level=getattr(logging, log_level), log_file=log_file)
 
     logger.info("Starting NetNews feed processor")
 
@@ -279,16 +300,16 @@ def main():
     # Determine config path
     if args.config:
         config_path = args.config
-    elif os.path.exists('/netnews/RSSFeeds.ini'):
-        config_path = '/netnews/RSSFeeds.ini'
+    elif os.path.exists("/netnews/RSSFeeds.ini"):
+        config_path = "/netnews/RSSFeeds.ini"
     else:
-        config_path = '../RSSFeeds.ini'
+        config_path = "../RSSFeeds.ini"
 
     logger.info(f"Reading configuration from {config_path}")
     config.read(config_path)
 
     # Create an OpenAI client with default settings
-    api_key = os.getenv('OPENAI_API_KEY')
+    api_key = os.getenv("OPENAI_API_KEY")
     if not api_key:
         logger.error("OPENAI_API_KEY not found in environment variables")
         return
@@ -298,14 +319,15 @@ def main():
     # Connect to database
     if args.db:
         db_path = args.db
-    elif os.path.exists('/netnews/netnews.db'):
-        db_path = '/netnews/netnews.db'
+    elif os.path.exists("/netnews/netnews.db"):
+        db_path = "/netnews/netnews.db"
     else:
-        db_path = '../netnews.db'
+        db_path = "../netnews.db"
 
     logger.info(f"Connecting to database at {db_path}")
     conn = sqlite3.connect(db_path)
-    conn.execute('''
+    conn.execute(
+        """
         CREATE TABLE IF NOT EXISTS news (
             id INTEGER PRIMARY KEY AUTOINCREMENT,
             feed TEXT,
@@ -314,24 +336,29 @@ def main():
             summary TEXT,
             created_date DATE DEFAULT CURRENT_DATE
         )
-    ''')
+    """
+    )
 
     # Create index on title for faster duplicate checking if it doesn't exist
     try:
-        conn.execute('CREATE INDEX IF NOT EXISTS idx_news_title ON news(title)')
-        conn.execute('CREATE INDEX IF NOT EXISTS idx_news_date ON news(created_date)')
+        conn.execute("CREATE INDEX IF NOT EXISTS idx_news_title ON news(title)")
+        conn.execute("CREATE INDEX IF NOT EXISTS idx_news_date ON news(created_date)")
     except sqlite3.OperationalError as e:
         logger.warning(f"Could not create index: {e}")
 
     # Clean up old entries
-    days_to_keep = args.retention if args.retention else int(os.getenv('RETENTION_DAYS', '30'))
+    days_to_keep = (
+        args.retention if args.retention else int(os.getenv("RETENTION_DAYS", "30"))
+    )
     logger.info(f"Retention policy: keeping entries for {days_to_keep} days")
     deleted_count = cleanup_old_entries(conn, days_to_keep)
     if deleted_count > 0:
-        logger.info(f"Cleaned up {deleted_count} entries older than {days_to_keep} days")
+        logger.info(
+            f"Cleaned up {deleted_count} entries older than {days_to_keep} days"
+        )
 
     # Process feeds
-    model = args.model if args.model else os.getenv('AI_MODEL')
+    model = args.model if args.model else os.getenv("AI_MODEL")
     if not model:
         logger.warning("AI_MODEL not specified, defaulting to gpt-3.5-turbo")
         model = "gpt-3.5-turbo"
@@ -341,35 +368,41 @@ def main():
     logger.info("Processing feeds sequentially")
 
     # Get timeout
-    timeout = args.timeout if args.timeout else int(os.getenv('FEED_TIMEOUT', '30'))
-    os.environ['FEED_TIMEOUT'] = str(timeout)
+    timeout = args.timeout if args.timeout else int(os.getenv("FEED_TIMEOUT", "30"))
+    os.environ["FEED_TIMEOUT"] = str(timeout)
     logger.info(f"Feed timeout set to {timeout} seconds")
 
     # Get max retries
-    max_retries = args.max_retries if args.max_retries else int(os.getenv('MAX_RETRIES', '3'))
+    max_retries = (
+        args.max_retries if args.max_retries else int(os.getenv("MAX_RETRIES", "3"))
+    )
     logger.info(f"API max retries set to {max_retries}")
 
     # Prepare feed processing tasks
     feed_tasks = []
     selected_feeds = args.feeds if args.feeds else None
 
-    for key in config['RSS_FEEDS']:
+    for key in config["RSS_FEEDS"]:
         # Skip feeds not in the selected list if a selection was provided
         if selected_feeds and key not in selected_feeds:
             logger.info(f"Skipping feed {key} (not in selected feeds)")
             continue
 
-        url, num_entries = config['RSS_FEEDS'][key].split(',')
+        url, num_entries = config["RSS_FEEDS"][key].split(",")
         feed_tasks.append((key, url, int(num_entries)))
 
     if not feed_tasks:
         if selected_feeds:
-            logger.error(f"None of the selected feeds {selected_feeds} were found in the configuration")
+            logger.error(
+                f"None of the selected feeds {selected_feeds} were found in the configuration"
+            )
         else:
             logger.error("No feeds found in the configuration")
         return
 
-    logger.info(f"Processing {len(feed_tasks)} feeds: {[task[0] for task in feed_tasks]}")
+    logger.info(
+        f"Processing {len(feed_tasks)} feeds: {[task[0] for task in feed_tasks]}"
+    )
 
     # Process feeds sequentially
     for key, url, num_entries in feed_tasks:
@@ -381,8 +414,8 @@ def main():
 
     # Close the database connection
     conn.close()
-    logger.info('NetNews feed processing completed successfully')
+    logger.info("NetNews feed processing completed successfully")
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     main()

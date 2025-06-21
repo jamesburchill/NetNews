@@ -26,7 +26,7 @@ The project is organized as follows:
   - `requirements.txt`: Python dependencies for NetNewsWeb
   - `templates/`: HTML templates for the web interface
     - `the_news.html`: Template for displaying news summaries
-  - `images/`: Static images used in the web interface
+  - `images/`: Static images used in the web interface (sourced from Unsplash, released under the Unsplash License)
 
 - `compose.yaml`: Docker Compose configuration for running both components
 - `RSSFeeds.ini`: Configuration file for RSS feeds
